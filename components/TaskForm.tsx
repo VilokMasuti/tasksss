@@ -2,7 +2,7 @@ import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Textarea } from '@/components/ui/textarea';
 import { ITask } from '@/model/task';
-import { useForm } from 'react-hook-form'
+import { useForm } from 'react-hook-form';
 
 interface TaskFormProps {
   task?: Partial<ITask>; // Task can be optional (for create)
@@ -10,14 +10,14 @@ interface TaskFormProps {
 }
 
 export default function TaskForm({ task, action }: TaskFormProps) {
-  const { register, handleSubmit, setValue } = useForm<
-    Omit<ITask, '_id' | 'createdAt'>
-  >({
+  const { register, handleSubmit } = useForm<Omit<ITask, '_id' | 'createdAt'>>({
     defaultValues: {
       title: task?.title || '',
       description: task?.description || '',
       // Check if task?.dueDate exists and use it; otherwise, leave it empty
-      dueDate: task?.dueDate ? new Date(task.dueDate).toISOString().slice(0, 16) : '',
+      dueDate: task?.dueDate
+        ? new Date(task.dueDate).toISOString().slice(0, 16)
+        : '',
       isCompleted: task?.isCompleted || false,
     },
   });

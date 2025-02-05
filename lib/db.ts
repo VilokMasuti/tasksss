@@ -13,10 +13,6 @@ interface MongooseCache {
   promise: Promise<typeof mongoose> | null;
 }
 
-declare global {
-  var mongoose: MongooseCache;
-}
-
 let cached = global.mongoose;
 
 if (!cached) {
