@@ -1,10 +1,15 @@
 'use server';
 import connectDB from '@/db';
-import Task, { ITask } from '@/model/task';
+import Task, { TaskInput } from '@/model/task';
 import { Types } from 'mongoose';
-
+interface TaskData {
+  _id?: string;
+  title: string;
+  description?: string;
+  dueDate?: Date;
+  isCompleted: boolean;
+}
 // Use Omit to exclude `_id` and `createdAt` for form input
-type TaskInput = Omit<ITask, '_id' | 'createdAt'>;
 
 // ✅ Create Task (Exclude `_id` & `createdAt`)
 export const createTask = async (formData: TaskInput) => {
@@ -24,7 +29,7 @@ export const createTask = async (formData: TaskInput) => {
 };
 
 // ✅ Update Task (Ensure `id` is a valid MongoDB ObjectId)
-export const updateTask = async (id: string, taskData: Partial<ITask>) => {
+export const updateTask = async (id: string, taskData: TaskData) => {
   try {
     await connectDB();
 

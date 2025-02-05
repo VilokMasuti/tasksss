@@ -11,19 +11,21 @@ import {
   CardTitle,
 } from '@/components/ui/card';
 import { Checkbox } from '@/components/ui/checkbox';
-import Task from '@/model/task';
 import { useEffect, useState } from 'react';
 import { toast } from 'react-hot-toast';
 
 // interfaces/TaskForm.d.ts
-interface TaskData {
+// Client-side type (used in React components)
+export interface TaskData {
   _id?: string;
   title: string;
   description?: string;
-  dueDate?: string;
+  dueDate?: Date | string; // Allow both Date and string for form inputs
   isCompleted: boolean;
 }
-type TaskInput = Omit<TaskData, '_id'>;
+
+// Input type for forms (exclude `_id` and `createdAt`)
+export type TaskInput = Omit<TaskData, '_id'>;
 
 export default function Home() {
   const [tasks, setTasks] = useState<TaskData[]>([]);
@@ -38,9 +40,16 @@ export default function Home() {
       setIsLoading(true);
       const res = await fetch('/api/tasks');
       const data = await res.json();
-      setTasks(data);
+
+      // Convert dates to strings for client-side compatibility
+      const tasksWithStringDates = data.map((task: TaskData) => ({
+        ...task,
+        dueDate: task.dueDate ? new Date(task.dueDate).toISOString() : undefined,
+      }));
+
+      setTasks(tasksWithStringDates);
     } catch (error) {
-      toast.error(`${error} Failed to fetch tasks`);
+      toast.error(`Failed to fetch tasks: ${(error as Error).message}`);
     } finally {
       setIsLoading(false);
     }
@@ -66,26 +75,21 @@ export default function Home() {
       toast.error(`${error} Failed to update task`);
     }
   };
-
   const handleSubmitTask = async (taskData: TaskInput) => {
     try {
       setIsSubmitting(true);
 
+      // Convert date string to Date object for the server
+      const serverTaskData = {
+        ...taskData,
+        dueDate: taskData.dueDate ? new Date(taskData.dueDate) : undefined,
+      };
+
       if (selectedTask) {
-        // For updating an existing task
-        const updatedTask = {
-          ...taskData,
-          dueDate: taskData.dueDate ? new Date(taskData.dueDate) : undefined,
-        };
-        await updateTask(selectedTask._id as string, updatedTask);
+        await updateTask(selectedTask._id as string, serverTaskData);
         toast.success('Task updated successfully');
       } else {
-        // For creating a new task, instantiate a new Task document
-        const newTask = new Task({
-          ...taskData,
-          createdAt: new Date(),
-        });
-        await createTask(newTask);
+        await createTask(serverTaskData);
         toast.success('Task created successfully');
       }
 
@@ -93,7 +97,7 @@ export default function Home() {
       setShowForm(false);
       setSelectedTask(null);
     } catch (error) {
-      toast.error(`${error} Failed to submit task`);
+      toast.error(`Failed to submit task: ${(error as Error).message}`);
     } finally {
       setIsSubmitting(false);
     }
@@ -120,7 +124,11 @@ export default function Home() {
         <Card className="mb-6 animate-fade-in">
           <CardContent className="pt-6">
             <TaskForm
-              task={selectedTask ?? undefined}
+              task={
+                selectedTask
+                  ? { ...selectedTask, dueDate: selectedTask.dueDate ? new Date(selectedTask.dueDate).toISOString() : undefined }
+                  : undefined
+              }
               action={handleSubmitTask}
             />
           </CardContent>
