@@ -11,16 +11,23 @@ import {
   CardTitle,
 } from '@/components/ui/card';
 import { Checkbox } from '@/components/ui/checkbox';
-import { ITask } from '@/model/task'; // Import the ITask type
 import { useEffect, useState } from 'react';
 import { toast } from 'react-hot-toast';
 
+// Define a separate interface for this page's task data
+interface TaskData {
+  title: string;
+  description?: string;
+  dueDate?: string;
+  isCompleted: boolean;
+}
+
 export default function Home() {
-  const [tasks, setTasks] = useState<ITask[]>([]);
+  const [tasks, setTasks] = useState<TaskData[]>([]);
   const [showForm, setShowForm] = useState(false);
   const [isLoading, setIsLoading] = useState(true);
   const [isSubmitting, setIsSubmitting] = useState(false);
-  const [selectedTask, setSelectedTask] = useState<ITask | null>(null);
+  const [selectedTask, setSelectedTask] = useState<TaskData | null>(null);
 
   const fetchTasks = async () => {
     try {
@@ -29,7 +36,7 @@ export default function Home() {
       const data = await res.json();
       setTasks(data);
     } catch (error) {
-      toast.error(`${error}Failed to fetch tasks`);
+      toast.error(`${error} Failed to fetch tasks`);
     } finally {
       setIsLoading(false);
     }
@@ -39,34 +46,33 @@ export default function Home() {
     fetchTasks();
   }, []);
 
-  const handleToggle = async (task: ITask) => {
+  const handleToggle = async (task: TaskData) => {
     try {
       const updatedTask = { ...task, isCompleted: !task.isCompleted };
-      await updateTask(task._id as string, updatedTask);
+      await updateTask(task._id as string, updatedTask); // You can adjust the method depending on how you update tasks
       fetchTasks();
       toast.success('Task updated successfully');
     } catch (error) {
-      toast.error(`${error}Failed to fetch tasks`);
+      toast.error(`${error} Failed to update task`);
     }
   };
 
-  const handleSubmitTask = async (taskData: TaskInput) => {
+  const handleSubmitTask = async (taskData: TaskData) => {
+    // Using TaskData here
     try {
       setIsSubmitting(true);
       if (selectedTask) {
-        if (selectedTask) {
-          await updateTask(selectedTask._id as string, taskData);
-        }
+        await updateTask(selectedTask._id as string, taskData);
         toast.success('Task updated successfully');
       } else {
-        await createTask(taskData as TaskInput);
+        await createTask(taskData);
         toast.success('Task created successfully');
       }
       fetchTasks();
       setShowForm(false);
       setSelectedTask(null);
     } catch (error) {
-      toast.error(`${error}Failed to fetch tasks`);
+      toast.error(`${error} Failed to submit task`);
     } finally {
       setIsSubmitting(false);
     }
@@ -92,7 +98,10 @@ export default function Home() {
       {showForm && (
         <Card className="mb-6 animate-fade-in">
           <CardContent className="pt-6">
-            <TaskForm task={selectedTask ?? undefined} action={handleSubmitTask} />
+            <TaskForm
+              task={selectedTask ?? undefined}
+              action={handleSubmitTask}
+            />
           </CardContent>
         </Card>
       )}
@@ -111,11 +120,8 @@ export default function Home() {
       ) : (
         // Task List
         <div className="grid gap-4">
-          {tasks.map((task: ITask) => (
-            <Card
-              key={task._id as string}
-              className="shadow-sm hover:shadow-md transition"
-            >
+          {tasks.map((task: TaskData, index) => (
+            <Card key={index} className="shadow-sm hover:shadow-md transition">
               <CardHeader className="flex flex-row items-center justify-between p-4">
                 <div className="flex items-center gap-4">
                   <Checkbox
@@ -131,7 +137,10 @@ export default function Home() {
                       {task.title}
                     </CardTitle>
                     <CardDescription>
-                      Due: {task.dueDate ? new Date(task.dueDate).toLocaleDateString() : 'No due date'}
+                      Due:{' '}
+                      {task.dueDate
+                        ? new Date(task.dueDate).toLocaleDateString()
+                        : 'No due date'}
                     </CardDescription>
                   </div>
                 </div>
@@ -149,11 +158,11 @@ export default function Home() {
                     variant="destructive"
                     onClick={async () => {
                       try {
-                        await deleteTask(task._id as string);
+                        await deleteTask(task._id as string); // Ensure this method is adjusted to handle task deletion
                         fetchTasks();
                         toast.success('Task deleted successfully');
                       } catch (error) {
-                        toast.error(`${error}Failed to deleted tasks`);
+                        toast.error(`${error} Failed to delete task`);
                       }
                     }}
                   >
