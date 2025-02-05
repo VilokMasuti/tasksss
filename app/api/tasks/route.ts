@@ -1,4 +1,4 @@
-import connectDB from '@/lib/db';
+import connectDB from '@/db';
 import Task from '@/model/task';
 
 export async function GET() {

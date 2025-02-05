@@ -1,5 +1,5 @@
 'use server';
-import connectDB from '@/lib/db';
+import connectDB from '@/db';
 import Task, { ITask } from '@/model/task';
 import { Types } from 'mongoose';
 
