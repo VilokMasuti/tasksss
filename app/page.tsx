@@ -11,16 +11,19 @@ import {
   CardTitle,
 } from '@/components/ui/card';
 import { Checkbox } from '@/components/ui/checkbox';
+import Task from '@/model/task';
 import { useEffect, useState } from 'react';
 import { toast } from 'react-hot-toast';
 
-// Define a separate interface for this page's task data
+// interfaces/TaskForm.d.ts
 interface TaskData {
+  _id?: string;
   title: string;
   description?: string;
   dueDate?: string;
   isCompleted: boolean;
 }
+type TaskInput = Omit<TaskData, '_id'>;
 
 export default function Home() {
   const [tasks, setTasks] = useState<TaskData[]>([]);
@@ -29,6 +32,7 @@ export default function Home() {
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [selectedTask, setSelectedTask] = useState<TaskData | null>(null);
 
+  // Fetch tasks from the API
   const fetchTasks = async () => {
     try {
       setIsLoading(true);
@@ -46,10 +50,16 @@ export default function Home() {
     fetchTasks();
   }, []);
 
+  // Toggle task completion status
   const handleToggle = async (task: TaskData) => {
     try {
-      const updatedTask = { ...task, isCompleted: !task.isCompleted };
-      await updateTask(task._id as string, updatedTask); // You can adjust the method depending on how you update tasks
+      const updatedTask = {
+        ...task,
+        isCompleted: !task.isCompleted,
+        dueDate: task.dueDate ? new Date(task.dueDate) : undefined,
+      };
+      await updateTask(task._id as string, updatedTask);
+
       fetchTasks();
       toast.success('Task updated successfully');
     } catch (error) {
@@ -57,17 +67,28 @@ export default function Home() {
     }
   };
 
-  const handleSubmitTask = async (taskData: TaskData) => {
-    // Using TaskData here
+  const handleSubmitTask = async (taskData: TaskInput) => {
     try {
       setIsSubmitting(true);
+
       if (selectedTask) {
-        await updateTask(selectedTask._id as string, taskData);
+        // For updating an existing task
+        const updatedTask = {
+          ...taskData,
+          dueDate: taskData.dueDate ? new Date(taskData.dueDate) : undefined,
+        };
+        await updateTask(selectedTask._id as string, updatedTask);
         toast.success('Task updated successfully');
       } else {
-        await createTask(taskData);
+        // For creating a new task, instantiate a new Task document
+        const newTask = new Task({
+          ...taskData,
+          createdAt: new Date(),
+        });
+        await createTask(newTask);
         toast.success('Task created successfully');
       }
+
       fetchTasks();
       setShowForm(false);
       setSelectedTask(null);
@@ -110,7 +131,6 @@ export default function Home() {
       {isLoading ? (
         <TaskSkeleton />
       ) : tasks.length === 0 ? (
-        // Show when no tasks exist
         <div className="text-center p-6 border rounded-lg bg-gray-50">
           <p className="text-gray-500">No tasks found. Create a new task!</p>
           <Button className="mt-4" onClick={() => setShowForm(true)}>
@@ -120,7 +140,7 @@ export default function Home() {
       ) : (
         // Task List
         <div className="grid gap-4">
-          {tasks.map((task: TaskData, index) => (
+          {tasks.map((task, index) => (
             <Card key={index} className="shadow-sm hover:shadow-md transition">
               <CardHeader className="flex flex-row items-center justify-between p-4">
                 <div className="flex items-center gap-4">
@@ -158,7 +178,7 @@ export default function Home() {
                     variant="destructive"
                     onClick={async () => {
                       try {
-                        await deleteTask(task._id as string); // Ensure this method is adjusted to handle task deletion
+                        await deleteTask(task._id as string);
                         fetchTasks();
                         toast.success('Task deleted successfully');
                       } catch (error) {

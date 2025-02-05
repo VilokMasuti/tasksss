@@ -17,14 +17,14 @@ export const createTask = async (formData: TaskInput) => {
     });
 
     await task.save();
-    return { success: true, message: 'Task created successfully' };
+    return { success: true, message: 'Task created successfully', task }; // Return created task for further use
   } catch (error) {
     return { success: false, message: (error as Error).message };
   }
 };
 
 // ✅ Update Task (Ensure `id` is a valid MongoDB ObjectId)
-export const updateTask = async (id: string, taskData: Partial<TaskInput>) => {
+export const updateTask = async (id: string, taskData: Partial<ITask>) => {
   try {
     await connectDB();
 
@@ -32,8 +32,15 @@ export const updateTask = async (id: string, taskData: Partial<TaskInput>) => {
       return { success: false, message: 'Invalid task ID' };
     }
 
-    await Task.findByIdAndUpdate(id, taskData);
-    return { success: true };
+    // Pass taskData as the update object (Mongoose will handle the rest)
+    const updatedTask = await Task.findByIdAndUpdate(id, taskData, {
+      new: true,
+    });
+    if (!updatedTask) {
+      return { success: false, message: 'Task not found' };
+    }
+
+    return { success: true, task: updatedTask };
   } catch (error) {
     return { success: false, message: (error as Error).message };
   }
@@ -48,7 +55,11 @@ export const deleteTask = async (id: string) => {
       return { success: false, message: 'Invalid task ID' };
     }
 
-    await Task.findByIdAndDelete(id);
+    const deletedTask = await Task.findByIdAndDelete(id);
+    if (!deletedTask) {
+      return { success: false, message: 'Task not found' };
+    }
+
     return { success: true, message: 'Task deleted successfully' };
   } catch (error) {
     return { success: false, message: (error as Error).message };

@@ -1,33 +1,49 @@
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Textarea } from '@/components/ui/textarea';
-import { ITask } from '@/model/task';
+
 import { useForm } from 'react-hook-form';
 
-interface TaskFormProps {
-  task?: Partial<ITask>; // Task can be optional (for create)
-  action: (data: Omit<ITask, '_id' | 'createdAt'>) => Promise<void>;
+// Define the interface for form values
+interface TaskFormValues {
+  title: string;
+  description?: string;
+  dueDate?: string;
+  isCompleted: boolean;
+}
+interface TaskData {
+  _id?: string;
+  title: string;
+  description?: string;
+  dueDate?: string;
+  isCompleted: boolean;
 }
 
+// Adjust the types for props
+interface TaskFormProps {
+  task: TaskData | undefined; // Task is now of type TaskData or undefined
+
+  action: (taskData: TaskFormValues) => Promise<void>; // action should be a function
+}
 export default function TaskForm({ task, action }: TaskFormProps) {
-  const { register, handleSubmit } = useForm<Omit<ITask, '_id' | 'createdAt'>>({
+  // Default values with optional task prop
+  const { register, handleSubmit } = useForm<TaskFormValues>({
     defaultValues: {
       title: task?.title || '',
       description: task?.description || '',
-      // Check if task?.dueDate exists and use it; otherwise, leave it empty
-      dueDate: task?.dueDate
-        ? new Date(task.dueDate).toISOString().slice(0, 16)
-        : '',
+      dueDate: task?.dueDate || '', // 'dueDate' is a string here
       isCompleted: task?.isCompleted || false,
     },
   });
 
-  const onSubmit = async (data: Omit<ITask, '_id' | 'createdAt'>) => {
-    // Ensure dueDate is properly converted to Date object, but guard against undefined
-    const dueDate = data.dueDate ? new Date(data.dueDate) : undefined;
+  // Form submission handler
+  const onSubmit = async (data: TaskFormValues) => {
+    const dueDate = data.dueDate
+      ? new Date(data.dueDate).toISOString()
+      : undefined; // Convert to ISO string if provided
     await action({
       ...data,
-      dueDate, // Use the converted dueDate or undefined
+      dueDate, // Ensure dueDate is in the correct format (string or undefined)
     });
   };
 
