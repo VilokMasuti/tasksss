@@ -1,6 +1,3 @@
-/* eslint-disable @typescript-eslint/no-unused-vars */
-'use client';
-
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Textarea } from '@/components/ui/textarea';
@@ -19,18 +16,18 @@ export default function TaskForm({ task, action }: TaskFormProps) {
     defaultValues: {
       title: task?.title || '',
       description: task?.description || '',
-      dueDate: task?.dueDate
-        ? new Date(task.dueDate).toISOString().slice(0, 16)
-        : '',
+      // Check if task?.dueDate exists and use it; otherwise, leave it empty
+      dueDate: task?.dueDate ? new Date(task.dueDate).toISOString().slice(0, 16) : '',
       isCompleted: task?.isCompleted || false,
     },
   });
 
   const onSubmit = async (data: Omit<ITask, '_id' | 'createdAt'>) => {
-    // Ensure dueDate is converted to a Date object
+    // Ensure dueDate is properly converted to Date object, but guard against undefined
+    const dueDate = data.dueDate ? new Date(data.dueDate) : undefined;
     await action({
       ...data,
-      dueDate: new Date(data.dueDate),
+      dueDate, // Use the converted dueDate or undefined
     });
   };
 

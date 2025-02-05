@@ -50,7 +50,7 @@ export default function Home() {
     }
   };
 
-  const handleSubmitTask = async (taskData: Partial<ITask>) => {
+  const handleSubmitTask = async (taskData: TaskInput) => {
     try {
       setIsSubmitting(true);
       if (selectedTask) {
@@ -59,7 +59,7 @@ export default function Home() {
         }
         toast.success('Task updated successfully');
       } else {
-        await createTask(taskData);
+        await createTask(taskData as TaskInput);
         toast.success('Task created successfully');
       }
       fetchTasks();
