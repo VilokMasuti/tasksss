@@ -11,13 +11,13 @@ import {
   CardTitle,
 } from '@/components/ui/card';
 import { Checkbox } from '@/components/ui/checkbox';
+import Task from '@/model/task';
 import { useEffect, useState } from 'react';
 import { toast } from 'react-hot-toast';
 
 // interfaces/TaskForm.d.ts
-// interfaces/TaskForm.d.ts
 interface TaskData {
-  _id: string; // Add this line
+  _id?: string;
   title: string;
   description?: string;
   dueDate?: string;
@@ -70,16 +70,25 @@ export default function Home() {
   const handleSubmitTask = async (taskData: TaskInput) => {
     try {
       setIsSubmitting(true);
+
       if (selectedTask) {
-        await updateTask(selectedTask._id as string, {
+        // For updating an existing task
+        const updatedTask = {
           ...taskData,
           dueDate: taskData.dueDate ? new Date(taskData.dueDate) : undefined,
-        });
+        };
+        await updateTask(selectedTask._id as string, updatedTask);
         toast.success('Task updated successfully');
       } else {
-        await createTask(taskData);
+        // For creating a new task, instantiate a new Task document
+        const newTask = new Task({
+          ...taskData,
+          createdAt: new Date(),
+        });
+        await createTask(newTask);
         toast.success('Task created successfully');
       }
+
       fetchTasks();
       setShowForm(false);
       setSelectedTask(null);
