@@ -1,101 +1,175 @@
-import Image from "next/image";
+'use client';
+import { createTask, deleteTask, updateTask } from '@/app/actions/task.action';
+import TaskForm from '@/components/TaskForm';
+import TaskSkeleton from '@/components/TaskSkeleton';
+import { Button } from '@/components/ui/button';
+import {
+  Card,
+  CardContent,
+  CardDescription,
+  CardHeader,
+  CardTitle,
+} from '@/components/ui/card';
+import { Checkbox } from '@/components/ui/checkbox';
+import { ITask } from '@/model/task'; // Import the ITask type
+import { useEffect, useState } from 'react';
+import { toast } from 'react-hot-toast';
 
 export default function Home() {
-  return (
-    <div className="grid grid-rows-[20px_1fr_20px] items-center justify-items-center min-h-screen p-8 pb-20 gap-16 sm:p-20 font-[family-name:var(--font-geist-sans)]">
-      <main className="flex flex-col gap-8 row-start-2 items-center sm:items-start">
-        <Image
-          className="dark:invert"
-          src="/next.svg"
-          alt="Next.js logo"
-          width={180}
-          height={38}
-          priority
-        />
-        <ol className="list-inside list-decimal text-sm text-center sm:text-left font-[family-name:var(--font-geist-mono)]">
-          <li className="mb-2">
-            Get started by editing{" "}
-            <code className="bg-black/[.05] dark:bg-white/[.06] px-1 py-0.5 rounded font-semibold">
-              app/page.tsx
-            </code>
-            .
-          </li>
-          <li>Save and see your changes instantly.</li>
-        </ol>
+  const [tasks, setTasks] = useState<ITask[]>([]);
+  const [showForm, setShowForm] = useState(false);
+  const [isLoading, setIsLoading] = useState(true);
+  const [isSubmitting, setIsSubmitting] = useState(false);
+  const [selectedTask, setSelectedTask] = useState<ITask | null>(null);
 
-        <div className="flex gap-4 items-center flex-col sm:flex-row">
-          <a
-            className="rounded-full border border-solid border-transparent transition-colors flex items-center justify-center bg-foreground text-background gap-2 hover:bg-[#383838] dark:hover:bg-[#ccc] text-sm sm:text-base h-10 sm:h-12 px-4 sm:px-5"
-            href="https://vercel.com/new?utm_source=create-next-app&utm_medium=appdir-template-tw&utm_campaign=create-next-app"
-            target="_blank"
-            rel="noopener noreferrer"
-          >
-            <Image
-              className="dark:invert"
-              src="/vercel.svg"
-              alt="Vercel logomark"
-              width={20}
-              height={20}
-            />
-            Deploy now
-          </a>
-          <a
-            className="rounded-full border border-solid border-black/[.08] dark:border-white/[.145] transition-colors flex items-center justify-center hover:bg-[#f2f2f2] dark:hover:bg-[#1a1a1a] hover:border-transparent text-sm sm:text-base h-10 sm:h-12 px-4 sm:px-5 sm:min-w-44"
-            href="https://nextjs.org/docs?utm_source=create-next-app&utm_medium=appdir-template-tw&utm_campaign=create-next-app"
-            target="_blank"
-            rel="noopener noreferrer"
-          >
-            Read our docs
-          </a>
+  const fetchTasks = async () => {
+    try {
+      setIsLoading(true);
+      const res = await fetch('/api/tasks');
+      const data = await res.json();
+      setTasks(data);
+    } catch (error) {
+      toast.error(`${error}Failed to fetch tasks`);
+    } finally {
+      setIsLoading(false);
+    }
+  };
+
+  useEffect(() => {
+    fetchTasks();
+  }, []);
+
+  const handleToggle = async (task: ITask) => {
+    try {
+      const updatedTask = { ...task, isCompleted: !task.isCompleted };
+      await updateTask(task._id as string, updatedTask);
+      fetchTasks();
+      toast.success('Task updated successfully');
+    } catch (error) {
+      toast.error(`${error}Failed to fetch tasks`);
+    }
+  };
+
+  const handleSubmitTask = async (taskData: Partial<ITask>) => {
+    try {
+      setIsSubmitting(true);
+      if (selectedTask) {
+        if (selectedTask) {
+          await updateTask(selectedTask._id as string, taskData);
+        }
+        toast.success('Task updated successfully');
+      } else {
+        await createTask(taskData);
+        toast.success('Task created successfully');
+      }
+      fetchTasks();
+      setShowForm(false);
+      setSelectedTask(null);
+    } catch (error) {
+      toast.error(`${error}Failed to fetch tasks`);
+    } finally {
+      setIsSubmitting(false);
+    }
+  };
+
+  return (
+    <div className="container mx-auto p-4 max-w-2xl">
+      {/* Header Section */}
+      <div className="flex justify-between items-center mb-6">
+        <h1 className="text-3xl font-bold">Task Manager</h1>
+        <Button
+          onClick={() => {
+            setShowForm(!showForm);
+            setSelectedTask(null);
+          }}
+          disabled={isSubmitting}
+        >
+          {showForm ? 'Cancel' : 'New Task'}
+        </Button>
+      </div>
+
+      {/* Task Form */}
+      {showForm && (
+        <Card className="mb-6 animate-fade-in">
+          <CardContent className="pt-6">
+            <TaskForm task={selectedTask ?? undefined} action={handleSubmitTask} />
+          </CardContent>
+        </Card>
+      )}
+
+      {/* Loading State */}
+      {isLoading ? (
+        <TaskSkeleton />
+      ) : tasks.length === 0 ? (
+        // Show when no tasks exist
+        <div className="text-center p-6 border rounded-lg bg-gray-50">
+          <p className="text-gray-500">No tasks found. Create a new task!</p>
+          <Button className="mt-4" onClick={() => setShowForm(true)}>
+            Create Task
+          </Button>
         </div>
-      </main>
-      <footer className="row-start-3 flex gap-6 flex-wrap items-center justify-center">
-        <a
-          className="flex items-center gap-2 hover:underline hover:underline-offset-4"
-          href="https://nextjs.org/learn?utm_source=create-next-app&utm_medium=appdir-template-tw&utm_campaign=create-next-app"
-          target="_blank"
-          rel="noopener noreferrer"
-        >
-          <Image
-            aria-hidden
-            src="/file.svg"
-            alt="File icon"
-            width={16}
-            height={16}
-          />
-          Learn
-        </a>
-        <a
-          className="flex items-center gap-2 hover:underline hover:underline-offset-4"
-          href="https://vercel.com/templates?framework=next.js&utm_source=create-next-app&utm_medium=appdir-template-tw&utm_campaign=create-next-app"
-          target="_blank"
-          rel="noopener noreferrer"
-        >
-          <Image
-            aria-hidden
-            src="/window.svg"
-            alt="Window icon"
-            width={16}
-            height={16}
-          />
-          Examples
-        </a>
-        <a
-          className="flex items-center gap-2 hover:underline hover:underline-offset-4"
-          href="https://nextjs.org?utm_source=create-next-app&utm_medium=appdir-template-tw&utm_campaign=create-next-app"
-          target="_blank"
-          rel="noopener noreferrer"
-        >
-          <Image
-            aria-hidden
-            src="/globe.svg"
-            alt="Globe icon"
-            width={16}
-            height={16}
-          />
-          Go to nextjs.org →
-        </a>
-      </footer>
+      ) : (
+        // Task List
+        <div className="grid gap-4">
+          {tasks.map((task: ITask) => (
+            <Card
+              key={task._id as string}
+              className="shadow-sm hover:shadow-md transition"
+            >
+              <CardHeader className="flex flex-row items-center justify-between p-4">
+                <div className="flex items-center gap-4">
+                  <Checkbox
+                    checked={task.isCompleted}
+                    onCheckedChange={() => handleToggle(task)}
+                  />
+                  <div>
+                    <CardTitle
+                      className={`${
+                        task.isCompleted ? 'line-through text-gray-500' : ''
+                      }`}
+                    >
+                      {task.title}
+                    </CardTitle>
+                    <CardDescription>
+                      Due: {task.dueDate ? new Date(task.dueDate).toLocaleDateString() : 'No due date'}
+                    </CardDescription>
+                  </div>
+                </div>
+                <div className="flex gap-2">
+                  <Button
+                    variant="outline"
+                    onClick={() => {
+                      setSelectedTask(task);
+                      setShowForm(true);
+                    }}
+                  >
+                    Edit
+                  </Button>
+                  <Button
+                    variant="destructive"
+                    onClick={async () => {
+                      try {
+                        await deleteTask(task._id as string);
+                        fetchTasks();
+                        toast.success('Task deleted successfully');
+                      } catch (error) {
+                        toast.error(`${error}Failed to deleted tasks`);
+                      }
+                    }}
+                  >
+                    Delete
+                  </Button>
+                </div>
+              </CardHeader>
+              {task.description && (
+                <CardContent>
+                  <p className="text-gray-700">{task.description}</p>
+                </CardContent>
+              )}
+            </Card>
+          ))}
+        </div>
+      )}
     </div>
   );
 }
